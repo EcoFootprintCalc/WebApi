@@ -1,0 +1,53 @@
+CREATE DATABASE sanyi;
+USE sanyi;
+CREATE TABLE Users
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    UserName VARCHAR(100) NOT NULL,
+    Email VARCHAR(50) NOT NULL,
+	Pwd VARCHAR(50) NOT NULL,
+    ProfileIMG INT,
+    LastLoginDate DATETIME
+);
+CREATE TABLE Categories
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    Description VARCHAR(255) NOT NULL,
+    Colour VARCHAR(20)
+);
+CREATE TABLE Presets
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    Description VARCHAR(255) NOT NULL,
+    Unit INT,
+	Multiplier INT,
+    CategoryID INT REFERENCES Categories(ID)
+);
+CREATE TABLE Footprints
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    CarbonFootprintAmount FLOAT NOT NULL,
+    Date DATETIME NOT NULL,
+    UserID INT REFERENCES Users(ID),
+    CategoryID INT REFERENCES Categories(ID)
+);
+CREATE TABLE Cars
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(50),
+    Brand VARCHAR(50) NOT NULL,
+    Type VARCHAR(50) NOT NULL,
+    AvgFuelConsumption FLOAT NOT NULL,
+    UserID INT REFERENCES Users(ID),
+    CategoryID INT REFERENCES Categories(ID)
+);
+CREATE TABLE Travels
+(
+	ID INT PRIMARY KEY AUTO_INCREMENT,
+    Persons INT NOT NULL,
+    Distance_km FLOAT NOT NULL,
+    Date DATETIME NOT NULL,
+    UserID INT REFERENCES Users(ID),
+    CarID INT REFERENCES Cars(ID)
+);
+
