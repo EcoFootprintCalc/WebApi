@@ -1,4 +1,5 @@
-﻿using EcoFootprintCalculator.Models.HttpModels;
+﻿using EcoFootprintCalculator.Lib;
+using EcoFootprintCalculator.Models.HttpModels;
 using EcoFootprintCalculator.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +11,12 @@ namespace EcoFootprintCalculator.Controllers
     public class AuthController : ControllerBase
     {
         private readonly TokenService _tokenService;
+        private readonly MySQL _mysql;
 
-        public AuthController(TokenService tokenService)
+        public AuthController(TokenService tokenService, MySQL MySql)
         {
             _tokenService = tokenService;
+            _mysql = MySql;
         }
 
         [HttpPost]
@@ -27,6 +30,12 @@ namespace EcoFootprintCalculator.Controllers
             }
 
             return Unauthorized();
+        }
+
+        [HttpGet]
+        public IActionResult TestMethod()
+        {
+            return Ok(new { UserCount = _mysql.Users.Count(), MySqlConnection = "Success" });
         }
 
         [Authorize]

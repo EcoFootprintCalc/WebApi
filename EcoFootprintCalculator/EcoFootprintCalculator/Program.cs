@@ -1,6 +1,8 @@
+using EcoFootprintCalculator.Lib;
 using EcoFootprintCalculator.Models.AppModels;
 using EcoFootprintCalculator.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -44,6 +46,12 @@ namespace EcoFootprintCalculator
             });
 
             builder.Services.AddAuthorization();
+            #endregion
+
+            #region EntityFramework
+            //dotnet ef dbcontext scaffold "server=;port=3306;database=EcoFootprintCalc;user=ecofootprintuser;password=;" Pomelo.EntityFrameworkCore.MySql --output-dir Models/DbModels --context-dir Lib --context MySQL --use-database-names --no-onconfiguring --force
+
+            builder.Services.AddDbContext<MySQL>(options =>options.UseMySql(builder.Configuration.GetConnectionString("MySQL"), ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MySQL"))));
             #endregion
 
             var app = builder.Build();
