@@ -9,9 +9,9 @@ public partial class Preset
 
     public string Description { get; set; } = null!;
 
-    public int? Unit { get; set; }
+    public string Unit { get; set; } = null!;
 
-    public int? Multiplier { get; set; }
+    public double? Multiplier { get; set; }
 
     public int? CategoryID { get; set; }
 }

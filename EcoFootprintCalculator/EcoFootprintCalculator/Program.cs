@@ -58,8 +58,15 @@ namespace EcoFootprintCalculator
 
             // Configure the HTTP request pipeline.
 
-            //app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
+//VPS only
+#if DEBUG
+
+#else
+            app.UsePathBase("/EcoFootprintCalculator");
+            app.UseRouting();
+#endif
             app.UseAuthorization();
 
 
