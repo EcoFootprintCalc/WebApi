@@ -16,12 +16,13 @@
             _jwtSettings = jwtSettings.Value;
         }
 
-        public string GenerateToken(string username)
+        public string GenerateToken(string username, string email)
         {
             var claims = new[]
             {
-            new Claim(ClaimTypes.Name, username)
-        };
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Email, email)
+            };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
