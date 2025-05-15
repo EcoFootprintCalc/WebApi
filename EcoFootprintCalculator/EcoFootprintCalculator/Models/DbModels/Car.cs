@@ -16,6 +16,4 @@ public partial class Car
     public float AvgFuelConsumption { get; set; }
 
     public int? UserID { get; set; }
-
-    public int? CategoryID { get; set; }
 }

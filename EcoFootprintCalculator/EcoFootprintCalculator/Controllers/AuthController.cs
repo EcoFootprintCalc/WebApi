@@ -34,6 +34,10 @@ namespace EcoFootprintCalculator.Controllers
             if(!PasswordManager.VerifyPassword(request.Password, user.Pwd))
                 return Unauthorized(new { Success = false, Msg = "Bad username or password." });
 
+            user.LastLoginDate = DateTime.Now;
+            _mysql.Users.Update(user);
+            await _mysql.SaveChangesAsync();
+
             var token = _tokenService.GenerateToken(user.UserName, user.Email);
             return Ok(new { token });
         }

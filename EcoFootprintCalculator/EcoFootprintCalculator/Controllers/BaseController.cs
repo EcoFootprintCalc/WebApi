@@ -1,11 +1,8 @@
-﻿using EcoFootprintCalculator.Models.DbModels;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using EcoFootprintCalculator.Lib;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace EcoFootprintCalculator.Controllers
 {
@@ -28,7 +25,7 @@ namespace EcoFootprintCalculator.Controllers
                 var token = authorizationHeader.Substring("Bearer ".Length).Trim();
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var jwtToken = tokenHandler.ReadJwtToken(token);
-                var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "email");
+                var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email);
                 if (emailClaim != null)
                 {
                     if (_mysql.Users.Any(u => u.Email == emailClaim.Value))
