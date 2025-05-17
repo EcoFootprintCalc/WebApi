@@ -11,7 +11,7 @@ public partial class Preset
 
     public string Unit { get; set; } = null!;
 
-    public double? Multiplier { get; set; }
+    public double Multiplier { get; set; }
 
-    public int? CategoryID { get; set; }
+    public int CategoryID { get; set; }
 }

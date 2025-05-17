@@ -44,6 +44,24 @@ namespace EcoFootprintCalculator.Controllers
             return Ok(new { Success = true, User = new { ProfileIMG = u.ProfileIMG, Email = u.Email, UserName = u.UserName, ID = u.ID } });
         }
 
+        [HttpPost("ChangeAvatar")]
+        public async Task<IActionResult> ChangeAvatar([FromBody] ChangeAvatarRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" });
+
+            u.ProfileIMG = request.AvatarId;
+            _mysql.Users.Update(u);
+
+            await _mysql.SaveChangesAsync();
+
+            return Ok(new { Success = true, NewAvater = u.ProfileIMG });
+        }
+
         [HttpPost("AddCar")]
         public async Task<IActionResult> AddCar([FromBody] AddCarRequest request)
         {
