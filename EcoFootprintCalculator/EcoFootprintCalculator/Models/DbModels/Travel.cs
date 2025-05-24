@@ -9,7 +9,7 @@ public partial class Travel
 
     public int Persons { get; set; }
 
-    public float Distance_km { get; set; }
+    public int Distance_km { get; set; }
 
     public DateTime Date { get; set; }
 

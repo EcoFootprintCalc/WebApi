@@ -24,6 +24,12 @@ namespace EcoFootprintCalculator.Controllers
             return Ok(_mysql.Presets.ToList());
         }
 
+        [HttpGet("GetCategories")]
+        public IActionResult GetCategories()
+        {
+            return Ok(_mysql.Categories.ToList());
+        }
+
         [Authorize]
         [HttpPost("PostDailyPreset")]
         public async Task<IActionResult> PostDailyPreset([FromBody] DailyPresetRequest request)
@@ -72,8 +78,107 @@ namespace EcoFootprintCalculator.Controllers
 
             List<DailyFootprintResponse> responseList = new();
             _mysql.Footprints.Where(fp=>fp.UserID == logonId && fp.Date.Date == DateTime.Today.Date).ToList().ForEach(x=> responseList.Add(new DailyFootprintResponse() { CategoryID = x.CategoryID, FootprintAmount = x.CarbonFootprintAmount }));
-            
+
+            int DailyTravelFootprint = 0;
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Today.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round((double)t.Distance_km * Constants.FuelMultiplier / t.Persons, 0));
+
+            if(DailyTravelFootprint > 0)
+            {
+                if (responseList.Any(rl => rl.CategoryID == 1))
+                    responseList.Single(rl => rl.CategoryID == 1).FootprintAmount += DailyTravelFootprint;
+                else
+                    responseList.Add(new DailyFootprintResponse() { CategoryID = 1, FootprintAmount = DailyTravelFootprint });
+            }
+
             return Ok(new {Success = true, DailyFootprintAmount = responseList });
+        }
+
+        [Authorize]
+        [HttpGet("GetPreviousDailyFootprint")]
+        public async Task<IActionResult> GetPreviousDailyFootprint([FromBody] GetPreviousDalyFootprintRequest request)
+        {
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" });
+
+            List<DailyFootprintResponse> responseList = new();
+            _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == request.Date.Date).ToList().ForEach(x => responseList.Add(new DailyFootprintResponse() { CategoryID = x.CategoryID, FootprintAmount = x.CarbonFootprintAmount }));
+
+
+            int DailyTravelFootprint = 0;
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == request.Date.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round((double)t.Distance_km * Constants.FuelMultiplier / t.Persons, 0));
+
+            if (DailyTravelFootprint > 0)
+            {
+                if (responseList.Any(rl => rl.CategoryID == 1))
+                    responseList.Single(rl => rl.CategoryID == 1).FootprintAmount += DailyTravelFootprint;
+                else
+                    responseList.Add(new DailyFootprintResponse() { CategoryID = 1, FootprintAmount = DailyTravelFootprint });
+            }
+
+            return Ok(new { Success = true, DailyFootprintAmount = responseList });
+        }
+
+        [Authorize]
+        [HttpGet("GetMonthlyFootprint")]
+        public async Task<IActionResult> GetMonthlyFootprint([FromBody] GetMonthlyFootprintRequest request)
+        {
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" });
+
+            List<DailyFootprintResponse> responseList = new();
+            _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Year == request.Date.Year && fp.Date.Month == request.Date.Month).GroupBy(f => f.CategoryID).ToList().ForEach(g => responseList.Add(new DailyFootprintResponse() { CategoryID = g.Key, FootprintAmount = g.Sum(f => f.CarbonFootprintAmount) }));
+
+            int MonthlyTravelFootprint = 0;
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Year == request.Date.Year && t.Date.Month == request.Date.Month).ToList().ForEach(t => MonthlyTravelFootprint += (int)Math.Round((double)t.Distance_km * Constants.FuelMultiplier / t.Persons, 0));
+
+            if (MonthlyTravelFootprint > 0)
+            {
+                if (responseList.Any(rl => rl.CategoryID == 1))
+                    responseList.Single(rl => rl.CategoryID == 1).FootprintAmount += MonthlyTravelFootprint;
+                else
+                    responseList.Add(new DailyFootprintResponse() { CategoryID = 1, FootprintAmount = MonthlyTravelFootprint });
+            }
+            
+            return Ok(new { Success = true, MonthlyFootprint = responseList });
+        }
+
+        [Authorize]
+        [HttpPost("PostDailyTravel")]
+        public async Task<IActionResult> PostDailyTravel([FromBody] TravelRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" }); //Btw. its not possible?!
+
+            Car? c = _mysql.Cars.SingleOrDefault(c => c.ID == request.CarId);
+            if (c is null)
+                return BadRequest(new {Success = false, Msg = "The given car does not exists."});
+
+            if (c.UserID != logonId)
+                return Unauthorized("User has no permission for the given car.");
+
+            _mysql.Travels.Add(new Travel()
+            {
+                Persons = request.Persons,
+                Distance_km = request.Distance,
+                Date = DateTime.Now,
+                UserID = logonId,
+                CarID = request.CarId
+            });
+
+            await _mysql.SaveChangesAsync();
+
+            double DailyTravelFootprint = 0;
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Today.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round((double)t.Distance_km * Constants.FuelMultiplier / t.Persons, 0));
+
+            DailyTravelFootprint += _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == DateTime.Today.Date && fp.CategoryID == 1).Sum(x => x.CarbonFootprintAmount);
+
+            return Ok( new { Success = true, DailyTravelFootprint } );
         }
     }
 }
