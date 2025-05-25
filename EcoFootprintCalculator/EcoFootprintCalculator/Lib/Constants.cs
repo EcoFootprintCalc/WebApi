@@ -2,6 +2,6 @@
 {
     public static class Constants
     {
-        public static int FuelMultiplier = 184;
+        public static double FuelMultiplier = 2.46;
     }
 }
