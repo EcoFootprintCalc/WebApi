@@ -1,8 +1,8 @@
 ﻿namespace EcoFootprintCalculator.Models.HttpModels
 {
-    public class PostDailyPresetAIRequest
+    public class PostAIActivityRequest
     {
-        public string DayDescription { get; set; } = null!;
+        public string ActivityDescription { get; set; } = null!;
     }
 
     public class DailyPresetRequest

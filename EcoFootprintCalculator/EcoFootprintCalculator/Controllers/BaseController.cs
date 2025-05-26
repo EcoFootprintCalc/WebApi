@@ -3,18 +3,26 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using EcoFootprintCalculator.Lib;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using EcoFootprintCalculator.Services;
 
 namespace EcoFootprintCalculator.Controllers
 {
     public abstract class BaseController : Controller
     {
-        protected MySQL _mysql { get; private set; }
+        protected MySQL _mysql { get; private set; }  
+        protected IGeminiService? _geminiService { get; private set; }
 
         protected int logonId = -1;
 
         public BaseController(MySQL sql)
         {
             this._mysql = sql;
+        }
+
+        public BaseController(MySQL sql, IGeminiService geminiService)
+        {
+            this._mysql = sql;
+            this._geminiService = geminiService;
         }
 
         public override void OnActionExecuting(ActionExecutingContext context)

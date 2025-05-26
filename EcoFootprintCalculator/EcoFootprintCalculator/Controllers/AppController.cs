@@ -1,6 +1,7 @@
 ﻿using EcoFootprintCalculator.Lib;
 using EcoFootprintCalculator.Models.DbModels;
 using EcoFootprintCalculator.Models.HttpModels;
+using EcoFootprintCalculator.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace EcoFootprintCalculator.Controllers
     [Route("[controller]")]
     public class AppController : BaseController
     {
-        public AppController(MySQL _mysql) : base(_mysql) { }
+        public AppController(MySQL mysql, IGeminiService geminiService) : base(mysql, geminiService) { }
 
         public IActionResult Index()
         {
@@ -61,14 +62,32 @@ namespace EcoFootprintCalculator.Controllers
             return Ok( new {Success = true, CurrentFootprint = summarized, SummarizedDailyFootprint = dailySummarized } );
         }
 
-        [HttpPost("PostDailyPresetAI")]
-        public IActionResult PostDailyPresetAI([FromBody] PostDailyPresetAIRequest DayDescription)
+        [Authorize]
+        [HttpPost("PostAIActivity")]
+        public async Task<IActionResult> PostAIActivity([FromBody] PostAIActivityRequest request)
         {
-            //Until db is not connected
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-            Random r = new();
-            return Ok(new { CalculatedCo2 = r.Next(DayDescription.DayDescription.Length * 10, DayDescription.DayDescription.Length * 1000) });
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" });
+
+            int? result = await _geminiService!.GetCustomActivityFootprintAsync(request.ActivityDescription);
+            if (result == null)
+                return BadRequest(new { Success = false, Msg = "The eco footprint of the activity could not be determined!" });
+
+            Footprint? fp;
+            if ((fp = await _mysql.Footprints.SingleOrDefaultAsync(f => f.UserID == logonId && f.CategoryID == 5 && f.Date.Date == DateTime.Now.Date)) != null) // 5 - Other
+            {
+                fp.CarbonFootprintAmount += (double)result;
+                _mysql.Footprints.Update(fp);
+            }
+            else
+                await _mysql.Footprints.AddAsync(new Footprint { CategoryID = 5, Date = DateTime.Now.Date, UserID = logonId, CarbonFootprintAmount = (double)result }); // 5 - Other
+            await _mysql.SaveChangesAsync();
+
+            double dailySummarized = _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == DateTime.Now.Date).Sum(fp => fp.CarbonFootprintAmount);
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km / 100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
+
+            return Ok(new {Success = true, CurrentActivityFootprint = result, SummarizedDailyFootprint = dailySummarized });
         }
 
         [Authorize]

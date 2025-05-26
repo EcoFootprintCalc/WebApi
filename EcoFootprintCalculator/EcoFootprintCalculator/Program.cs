@@ -23,6 +23,11 @@ namespace EcoFootprintCalculator
             builder.Configuration.GetSection("JwtSettings"));
             builder.Services.AddSingleton<TokenService>();
 
+            builder.Services.Configure<GeminiApiSettings>(
+            builder.Configuration.GetSection("GeminiApi"));
+            builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+
+
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
             var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
 
