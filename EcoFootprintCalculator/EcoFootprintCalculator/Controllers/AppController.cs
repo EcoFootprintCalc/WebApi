@@ -4,6 +4,7 @@ using EcoFootprintCalculator.Models.HttpModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace EcoFootprintCalculator.Controllers
 {
@@ -55,7 +56,7 @@ namespace EcoFootprintCalculator.Controllers
             await _mysql.SaveChangesAsync();
 
             double dailySummarized = _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == DateTime.Now.Date).Sum(fp => fp.CarbonFootprintAmount);
-            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons, 0));
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
 
             return Ok( new {Success = true, CurrentFootprint = summarized, SummarizedDailyFootprint = dailySummarized } );
         }
@@ -82,7 +83,7 @@ namespace EcoFootprintCalculator.Controllers
             _mysql.Footprints.Where(fp=>fp.UserID == logonId && fp.Date.Date == DateTime.Today.Date).ToList().ForEach(x=> responseList.Add(new DailyFootprintResponse() { CategoryID = x.CategoryID, FootprintAmount = x.CarbonFootprintAmount }));
 
             int DailyTravelFootprint = 0;
-            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Today.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round(t.Distance_km * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons, 0));
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Today.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
 
             if(DailyTravelFootprint > 0)
             {
@@ -93,6 +94,40 @@ namespace EcoFootprintCalculator.Controllers
             }
 
             return Ok(new {Success = true, DailyFootprintAmount = responseList });
+        }
+
+        [Authorize]
+        [HttpGet("GetOverTimeFootprint")]
+        public async Task<IActionResult> GetOverTimeFootprint()
+        {
+            User? u = await _mysql.Users.SingleOrDefaultAsync(u => u.ID == logonId);
+            if (u is null)
+                return BadRequest(new { Success = false, Msg = "User not found!" });
+
+            DateTime endTime = DateTime.Today;
+            DateTime startTime = DateTime.Today.AddDays(-30);
+
+            List<OverTimeFootprintResponse> response = new();
+            List<Footprint> footprints = _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date >= startTime.Date && fp.Date.Date <= endTime.Date).ToList();
+            List<Travel> travels = _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date >= startTime && t.Date.Date <= endTime).ToList();
+
+
+            foreach (DateTime date in Statics.GetDatesBetween(startTime, endTime))
+            {
+                int DailyTravelFootprint = 0;
+                travels.Where(t => t.Date.Date == date.Date).ToList().
+                    ForEach(t => DailyTravelFootprint += (int)Math.Round(t.Distance_km / 100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
+
+                int DailyFootprint = 0;
+                footprints.Where(fp => fp.Date == date).ToList().ForEach(x => DailyFootprint += (int)Math.Round(x.CarbonFootprintAmount, 0));
+
+                response.Add(new OverTimeFootprintResponse {
+                    Date = date,
+                    FootprintAmount = DailyTravelFootprint + DailyFootprint
+                });
+            }
+
+            return Ok(new { Success = true, FootprintList = response });
         }
 
         [Authorize]
@@ -108,7 +143,7 @@ namespace EcoFootprintCalculator.Controllers
 
 
             int DailyTravelFootprint = 0;
-            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == Date.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round(t.Distance_km * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons, 0));
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == Date.Date).ToList().ForEach(t => DailyTravelFootprint += (int)Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
 
             if (DailyTravelFootprint > 0)
             {
@@ -133,7 +168,7 @@ namespace EcoFootprintCalculator.Controllers
             _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Year == Date.Year && fp.Date.Month == Date.Month).GroupBy(f => f.CategoryID).ToList().ForEach(g => responseList.Add(new DailyFootprintResponse() { CategoryID = g.Key, FootprintAmount = g.Sum(f => f.CarbonFootprintAmount) }));
 
             int MonthlyTravelFootprint = 0;
-            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Year == Date.Year && t.Date.Month == Date.Month).ToList().ForEach(t => MonthlyTravelFootprint += (int)Math.Round(t.Distance_km * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons, 0));
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Year == Date.Year && t.Date.Month == Date.Month).ToList().ForEach(t => MonthlyTravelFootprint += (int)Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
 
             if (MonthlyTravelFootprint > 0)
             {
@@ -178,7 +213,7 @@ namespace EcoFootprintCalculator.Controllers
             int actualCost = (int)Math.Round(request.Distance * _mysql.Cars.Single(c => c.ID == request.CarId).AvgFuelConsumption * Constants.FuelMultiplier / request.Persons, 0);
 
             double dailySummarized = _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == DateTime.Now.Date).Sum(fp => fp.CarbonFootprintAmount);
-            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons, 0));
+            _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
 
             return Ok( new { Success = true, ActualTripCost = actualCost, SummarizedDailyCost = dailySummarized } );
         }
