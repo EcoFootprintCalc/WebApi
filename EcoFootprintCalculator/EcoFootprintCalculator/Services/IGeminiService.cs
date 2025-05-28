@@ -2,6 +2,7 @@
 {
     public interface IGeminiService
     {
-        Task<int?> GetCustomActivityFootprintAsync(string activityDescription);
+        Task<string?> GetCustomActivityFootprintAsync(string activityDescription, string categories);
+        Task<string?> GetPersonalRecommendationAsync(string dailyString);
     }
 }
