@@ -17,14 +17,14 @@ namespace EcoFootprintCalculator
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddHttpClient<GeminiService>();
 
             #region Auth
             builder.Services.Configure<JwtSettings>(
-            builder.Configuration.GetSection("JwtSettings"));
+                builder.Configuration.GetSection("JwtSettings"));
             builder.Services.AddSingleton<TokenService>();
 
-            var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
-            var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -33,6 +33,7 @@ namespace EcoFootprintCalculator
             })
             .AddJwtBearer(options =>
             {
+                var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -68,7 +69,6 @@ namespace EcoFootprintCalculator
             app.UseRouting();
 #endif
             app.UseAuthorization();
-
 
             app.MapControllers();
 
