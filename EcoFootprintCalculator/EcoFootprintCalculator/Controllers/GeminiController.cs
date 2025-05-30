@@ -1,3 +1,4 @@
+using EcoFootprintCalculator.Models.HttpModels;
 using EcoFootprintCalculator.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,27 +8,29 @@ namespace EcoFootprintCalculator.Controllers
     [Route("[controller]")]
     public class GeminiController : ControllerBase
     {
-        private readonly GeminiService _geminiService;
+        private readonly IGeminiService _geminiService;
 
-        public GeminiController(GeminiService geminiService)
+        public GeminiController(IGeminiService geminiService)
         {
             _geminiService = geminiService;
         }
 
         [HttpPost("GenerateText")]
-        public async Task<IActionResult> GenerateText([FromBody] string prompt)
+        public async Task<IActionResult> GenerateText([FromBody] ChatBotRequest request)
         {
-            Console.WriteLine("KAPOTT PROMPT:");
-            Console.WriteLine(prompt == null ? "NULL" : prompt);
+            //Console.WriteLine("KAPOTT PROMPT:");
+            //Console.WriteLine(prompt == null ? "NULL" : prompt);
+            if (string.IsNullOrEmpty(request.prompt))
+                return BadRequest(new { Success = false, Msg = "Prompt is null or empty."});
             try
             {
-                var result = await _geminiService.GenerateTextAsync(prompt);
-                return Ok(new { Result = result });
+                var result = await _geminiService.GenerateTextAsync(request.prompt);
+                return Ok(new { Success = true, Result = result });
             }
             catch (Exception ex)
             {
                 // Hibát visszaadod
-                return StatusCode(500, ex.Message);
+                return BadRequest(new { Success = false, Msg = ex.Message });
             }
         }
     }

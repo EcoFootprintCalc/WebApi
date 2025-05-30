@@ -23,11 +23,6 @@ namespace EcoFootprintCalculator
             builder.Configuration.GetSection("JwtSettings"));
             builder.Services.AddSingleton<TokenService>();
 
-            builder.Services.Configure<GeminiApiSettings>(
-            builder.Configuration.GetSection("GeminiApi"));
-            builder.Services.AddHttpClient<IGeminiService, GeminiService>();
-
-
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
             var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
 
@@ -53,6 +48,12 @@ namespace EcoFootprintCalculator
             builder.Services.AddAuthorization();
             #endregion
 
+            #region GeminiAPI
+            builder.Services.Configure<GeminiApiSettings>(
+            builder.Configuration.GetSection("GeminiApi"));
+            builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+            #endregion
+
             #region EntityFramework
             //dotnet ef dbcontext scaffold "server=;port=3306;database=EcoFootprintCalc;user=ecofootprintuser;password=;" Pomelo.EntityFrameworkCore.MySql --output-dir Models/DbModels --context-dir Lib --context MySQL --use-database-names --no-onconfiguring --force
 
@@ -63,7 +64,7 @@ namespace EcoFootprintCalculator
 
             // Configure the HTTP request pipeline.
 
-//app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
 //VPS only
 #if DEBUG
