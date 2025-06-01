@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using System.Xml.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace EcoFootprintCalculator.Controllers
 {
@@ -237,6 +235,8 @@ namespace EcoFootprintCalculator.Controllers
             if(!_mysql.Footprints.Any(fp=>fp.UserID == logonId && fp.Date.Date == DateTime.Today.Date))
                 return Ok(new { Success = false, Msg = "Personal recommendations are available only if you have at least one recorded footprint for today." });
 
+            TempStorage.recommendations.RemoveAll(r=>r.createdAt.Date != DateTime.Today.Date);
+
             RecommendationModel rm;
 
             if (TempStorage.recommendations.Any(r => r.userId == logonId))
@@ -263,7 +263,7 @@ namespace EcoFootprintCalculator.Controllers
                     rm.createdAt = DateTime.UtcNow;
                 }
                 else //Return current
-                    rm = TempStorage.recommendations.Single(r => r.userId == logonId);
+                    rm = TempStorage.recommendations.Single(r => r.userId == logonId && r.createdAt.Date == DateTime.Today.Date);
             else
             { //Generate
                 rm = new();
@@ -321,7 +321,7 @@ namespace EcoFootprintCalculator.Controllers
 
             await _mysql.SaveChangesAsync();
 
-            int actualCost = (int)Math.Round(request.Distance * _mysql.Cars.Single(c => c.ID == request.CarId).AvgFuelConsumption * Constants.FuelMultiplier / request.Persons, 0);
+            int actualCost = (int)Math.Round(request.Distance/100.0 * _mysql.Cars.Single(c => c.ID == request.CarId).AvgFuelConsumption * Constants.FuelMultiplier / request.Persons * 1000, 0);
 
             double dailySummarized = _mysql.Footprints.Where(fp => fp.UserID == logonId && fp.Date.Date == DateTime.Now.Date).Sum(fp => fp.CarbonFootprintAmount);
             _mysql.Travels.Where(t => t.UserID == logonId && t.Date.Date == DateTime.Now.Date).ToList().ForEach(t => dailySummarized += Math.Round(t.Distance_km/100.0 * _mysql.Cars.Single(c => c.ID == t.CarID).AvgFuelConsumption * Constants.FuelMultiplier / t.Persons * 1000, 0));
